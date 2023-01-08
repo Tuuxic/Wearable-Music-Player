@@ -1,40 +1,55 @@
-import 'dart:html';
-
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:just_audio/just_audio.dart';
 
-class SongListView extends StatefulWidget {
-  const SongListView(
+import 'sub_widgets/player_bottom_bar.dart';
+
+class SongListView extends StatelessWidget {
+  SongListView(
       {super.key,
       required this.themeColor,
-      required this.audioQuery,
-      required this.audioPlayer,
+      required this.playAndSetCurrentSong,
       required this.songsList,
       required this.toggleView});
+
   final Color themeColor;
-  final OnAudioQuery audioQuery;
-  final AudioPlayer audioPlayer;
+  final OnAudioQuery _audioQuery = OnAudioQuery();
+  final Function playAndSetCurrentSong;
   final List<SongModel> songsList;
   final Function toggleView;
 
-  @override
-  State<SongListView> createState() => _SongListViewState();
-}
+  final String _songListViewTitle = "Music Player";
 
-class _SongListViewState extends State<SongListView> {
-  final String songListViewTitle = "Music Player";
+  String _durationToTxt(int duration) {
+    if (duration < 0) {
+      return "0:00";
+    }
+    int seconds = (duration ~/ 1000) % 60;
+    int minutes = duration ~/ (1000 * 60);
+
+    if (minutes >= 60) {
+      return ">60 Min";
+    }
+
+    String secondsTxt = "$seconds";
+    if (seconds < 10) {
+      secondsTxt = "0$seconds";
+    }
+    return "$minutes:$secondsTxt";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.themeColor,
+      backgroundColor: themeColor,
       appBar: AppBar(
-        backgroundColor: widget.themeColor,
-        title: Text(songListViewTitle),
+        backgroundColor: themeColor,
+        title: Center(child: Text(_songListViewTitle)),
         elevation: 20,
       ),
+      bottomNavigationBar: PlayerBottomBar(),
       body: FutureBuilder<List<SongModel>>(
-        future: widget.audioQuery.querySongs(
+        future: _audioQuery.querySongs(
             orderType: OrderType.ASC_OR_SMALLER,
             uriType: UriType.EXTERNAL,
             ignoreCase: true),
@@ -47,9 +62,9 @@ class _SongListViewState extends State<SongListView> {
             return const Center(child: Text("No Songs Found on Device"));
           }
 
-          widget.songsList.clear();
+          songsList.clear();
           for (var element in songs.data!) {
-            widget.songsList.add(element);
+            songsList.add(element);
           }
 
           return ListView.builder(
@@ -58,35 +73,25 @@ class _SongListViewState extends State<SongListView> {
               return Container(
                 margin:
                     const EdgeInsets.only(top: 15.0, left: 12.0, right: 16.0),
-                padding: const EdgeInsets.only(top: 30.0, bottom: 30),
-                decoration: BoxDecoration(
-                  color: widget.themeColor,
-                  borderRadius: BorderRadius.circular(20.0),
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 4.0,
-                      offset: Offset(-4, -4),
-                      color: Colors.white24,
-                    ),
-                    BoxShadow(
-                      blurRadius: 4.0,
-                      offset: Offset(4, 4),
-                      color: Colors.black,
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.only(top: 10.0, bottom: 10),
+                decoration: BoxDecoration(color: themeColor),
                 child: ListTile(
+                  textColor: Colors.white,
+                  title: Text(songs.data![index].title),
+                  subtitle: Text(
+                    songs.data![index].artist ?? "",
+                    style: const TextStyle(
+                      color: Colors.white30,
+                    ),
+                  ),
+                  trailing:
+                      Text(_durationToTxt(songs.data![index].duration ?? 0)),
+                  leading: QueryArtworkWidget(
+                    id: songs.data![index].id,
+                    type: ArtworkType.AUDIO,
+                  ),
                   onTap: () async {
-                    List<AudioSource> sources = [];
-                    for (var song in songs.data!) {
-                      sources.add(AudioSource.uri(Uri.parse(song.uri!)));
-                    }
-                    ConcatenatingAudioSource playlist =
-                        ConcatenatingAudioSource(children: sources);
-                    await widget.audioPlayer
-                        .setAudioSource(playlist, initialIndex: index);
-                    await widget.audioPlayer.play();
-                    widget.toggleView();
+                    playAndSetCurrentSong(index);
                   },
                 ),
               );

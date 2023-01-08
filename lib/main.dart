@@ -1,5 +1,6 @@
 import 'package:bleapp/widgets/songlist_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
@@ -55,13 +56,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // The theme color of the application
-  Color themeColor = const Color(0X1a1a1aFF);
+  Color themeColor = const Color(0X1a1a1a1a);
   // List of all songs
   List<SongModel> songsList = [];
   int currentSongIndex = 0;
   bool inPlayerView = false;
 
-  final OnAudioQuery _audioQuery = OnAudioQuery();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   // Get the dutation stream
@@ -75,16 +75,12 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-
+    requestStoragePermission();
     // Setup listener for currently playing song stream
     _audioPlayer.currentIndexStream.listen((index) {
       // Update currently playing song when not null
       if (index != null) {
-        setState(() {
-          if (songsList.isNotEmpty) {
-            currentSongIndex = index;
-          }
-        });
+        playAndSetCurrentSong(index);
       }
     });
   }
@@ -101,20 +97,53 @@ class _MyHomePageState extends State<MyHomePage> {
     if (inPlayerView) {
       return PlayerView(
         themeColor: themeColor,
+        toggleView: toggleView,
       );
     } else {
       return SongListView(
           themeColor: themeColor,
-          audioPlayer: _audioPlayer,
-          audioQuery: _audioQuery,
+          playAndSetCurrentSong: playAndSetCurrentSong,
           songsList: songsList,
-          toggleView: _toggleView);
+          toggleView: toggleView);
     }
   }
 
-  void _toggleView() {
+  void toggleView() {
     setState(() {
       inPlayerView = !inPlayerView;
     });
+  }
+
+  void playAndSetCurrentSong(int index) async {
+    List<AudioSource> sources = [];
+
+    for (var song in songsList) {
+      sources.add(AudioSource.uri(Uri.parse(song.uri!)));
+    }
+    ConcatenatingAudioSource playlist =
+        ConcatenatingAudioSource(children: sources);
+
+    await _audioPlayer.setAudioSource(playlist, initialIndex: index);
+    await _audioPlayer.play();
+
+    setState(() {
+      if (songsList.isNotEmpty) {
+        currentSongIndex = index;
+      }
+    });
+
+    toggleView();
+  }
+
+  // Setup permissions to access storage with the audio query object
+  final OnAudioQuery _audioQuery = OnAudioQuery();
+  void requestStoragePermission() async {
+    if (!kIsWeb) {
+      bool permissionStatus = await _audioQuery.permissionsStatus();
+      if (!permissionStatus) {
+        await _audioQuery.permissionsRequest();
+      }
+      setState(() {});
+    }
   }
 }
