@@ -1,11 +1,11 @@
+import 'package:bleapp/wearables/esense_controller.dart';
 import 'package:bleapp/widgets/songlist_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:rxdart/rxdart.dart';
-import 'utils/duration_state.dart';
 import 'widgets/player_view.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,37 +18,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Wearable\'s Music Control',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -56,39 +36,44 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // The theme color of the application
-  Color themeColor = const Color(0X1a1a1a1a);
+  Color themeColor = const Color.fromARGB(26, 71, 71, 71);
   // List of all songs
   List<SongModel> songsList = [];
-  int currentSongIndex = 0;
+  int currentSongIndex = -1;
   bool inPlayerView = false;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
-
-  // Get the dutation stream
-  Stream<DurationState> get _durationStateStream =>
-      Rx.combineLatest2<Duration, Duration?, DurationState>(
-          _audioPlayer.positionStream,
-          _audioPlayer.durationStream,
-          (position, duration) => DurationState(
-              position: position, total: duration ?? Duration.zero));
+  late ESenseController? wearable;
 
   @override
   void initState() {
     super.initState();
-    requestStoragePermission();
+    _requestStoragePermission();
+    _requestBluetoothAndLocationPermission();
+
     // Setup listener for currently playing song stream
     _audioPlayer.currentIndexStream.listen((index) {
       // Update currently playing song when not null
       if (index != null) {
-        playAndSetCurrentSong(index);
+        //playAndSetCurrentSong(index);
+        setState((() => currentSongIndex = index));
       }
     });
+    _audioPlayer.setLoopMode(LoopMode.all);
+
+    wearable = ESenseController(
+        deviceName: "eSence-012",
+        onRightShake: onRightShake,
+        onLeftShake: onLeftShake);
+    wearable?.connect();
+    wearable?.startListening();
   }
 
   // Dispose of audio player
   @override
   void dispose() {
     _audioPlayer.dispose();
+    wearable?.disconnect();
     super.dispose();
   }
 
@@ -98,14 +83,25 @@ class _MyHomePageState extends State<MyHomePage> {
       return PlayerView(
         themeColor: themeColor,
         toggleView: toggleView,
+        currentSong: songsList[currentSongIndex],
+        audioPlayer: _audioPlayer,
       );
     } else {
       return SongListView(
           themeColor: themeColor,
           playAndSetCurrentSong: playAndSetCurrentSong,
           songsList: songsList,
+          displayPlayingSong: _getSongToDisplay(),
           toggleView: toggleView);
     }
+  }
+
+  SongModel? _getSongToDisplay() {
+    if (currentSongIndex >= 0 && currentSongIndex < songsList.length) {
+      return songsList[currentSongIndex];
+    }
+
+    return null;
   }
 
   void toggleView() {
@@ -131,13 +127,28 @@ class _MyHomePageState extends State<MyHomePage> {
         currentSongIndex = index;
       }
     });
-
-    toggleView();
   }
 
-  // Setup permissions to access storage with the audio query object
+  // Setup wearable actions
+
+  void onRightShake() async {
+    if (_audioPlayer.hasNext) {
+      await _audioPlayer.seekToNext();
+      await _audioPlayer.play();
+    }
+  }
+
+  void onLeftShake() async {
+    if (_audioPlayer.hasPrevious) {
+      await _audioPlayer.seekToPrevious();
+      await _audioPlayer.play();
+    }
+  }
+
+  // Setup permissions
+
   final OnAudioQuery _audioQuery = OnAudioQuery();
-  void requestStoragePermission() async {
+  void _requestStoragePermission() async {
     if (!kIsWeb) {
       bool permissionStatus = await _audioQuery.permissionsStatus();
       if (!permissionStatus) {
@@ -145,5 +156,13 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       setState(() {});
     }
+  }
+
+  void _requestBluetoothAndLocationPermission() async {
+    await Permission.bluetooth.request();
+    await Permission.locationWhenInUse.request();
+    await Permission.bluetoothScan.request();
+
+    setState(() {});
   }
 }

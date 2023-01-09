@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:just_audio/just_audio.dart';
 
 import 'sub_widgets/player_bottom_bar.dart';
 
@@ -9,6 +8,7 @@ class SongListView extends StatelessWidget {
       {super.key,
       required this.themeColor,
       required this.playAndSetCurrentSong,
+      required this.displayPlayingSong,
       required this.songsList,
       required this.toggleView});
 
@@ -16,6 +16,7 @@ class SongListView extends StatelessWidget {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final Function playAndSetCurrentSong;
   final List<SongModel> songsList;
+  final SongModel? displayPlayingSong;
   final Function toggleView;
 
   final String _songListViewTitle = "Music Player";
@@ -47,7 +48,10 @@ class SongListView extends StatelessWidget {
         title: Center(child: Text(_songListViewTitle)),
         elevation: 20,
       ),
-      bottomNavigationBar: PlayerBottomBar(),
+      bottomNavigationBar: PlayerBottomBar(
+        displayPlayingSong: displayPlayingSong,
+        toggleView: toggleView,
+      ),
       body: FutureBuilder<List<SongModel>>(
         future: _audioQuery.querySongs(
             orderType: OrderType.ASC_OR_SMALLER,
@@ -91,7 +95,8 @@ class SongListView extends StatelessWidget {
                     type: ArtworkType.AUDIO,
                   ),
                   onTap: () async {
-                    playAndSetCurrentSong(index);
+                    await playAndSetCurrentSong(index);
+                    toggleView();
                   },
                 ),
               );
