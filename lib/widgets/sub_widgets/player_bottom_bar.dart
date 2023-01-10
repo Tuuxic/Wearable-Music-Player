@@ -23,12 +23,18 @@ class PlayerBottomBar extends StatelessWidget {
         decoration: const BoxDecoration(color: Colors.black),
         child: ListTile(
           textColor: Colors.white,
-          title: Text(displayPlayingSong?.title ?? ""),
+          title: Text(
+            displayPlayingSong?.title ?? "",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           subtitle: Text(
             displayPlayingSong?.artist ?? "",
             style: const TextStyle(
               color: Colors.white30,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           leading: QueryArtworkWidget(
             id: displayPlayingSong?.id ?? -1,

@@ -7,17 +7,21 @@ class SongListView extends StatelessWidget {
   SongListView(
       {super.key,
       required this.themeColor,
+      required this.isWearableConnected,
       required this.playAndSetCurrentSong,
       required this.displayPlayingSong,
       required this.songsList,
-      required this.toggleView});
+      required this.toggleView,
+      required this.connectToWearable});
 
   final Color themeColor;
+  final bool isWearableConnected;
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final Function playAndSetCurrentSong;
   final List<SongModel> songsList;
   final SongModel? displayPlayingSong;
   final Function toggleView;
+  final Function connectToWearable;
 
   final String _songListViewTitle = "Music Player";
 
@@ -45,8 +49,32 @@ class SongListView extends StatelessWidget {
       backgroundColor: themeColor,
       appBar: AppBar(
         backgroundColor: themeColor,
-        title: Center(child: Text(_songListViewTitle)),
-        elevation: 20,
+        title: Center(
+            child: Wrap(alignment: WrapAlignment.spaceBetween, children: [
+          Text(_songListViewTitle),
+          Container(
+            margin: const EdgeInsets.only(left: 10),
+            child: isWearableConnected
+                ? const Icon(
+                    Icons.bluetooth_connected,
+                    color: Colors.green,
+                  )
+                : InkWell(
+                    child: const Icon(
+                      Icons.bluetooth_disabled,
+                      color: Colors.red,
+                    ),
+                    onTap: () {
+                      connectToWearable();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text(
+                        "Connecting...",
+                        textAlign: TextAlign.center,
+                      )));
+                    },
+                  ),
+          ),
+        ])),
       ),
       bottomNavigationBar: PlayerBottomBar(
         displayPlayingSong: displayPlayingSong,
@@ -81,12 +109,18 @@ class SongListView extends StatelessWidget {
                 decoration: BoxDecoration(color: themeColor),
                 child: ListTile(
                   textColor: Colors.white,
-                  title: Text(songs.data![index].title),
+                  title: Text(
+                    songs.data![index].title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
                     songs.data![index].artist ?? "",
                     style: const TextStyle(
                       color: Colors.white30,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   trailing:
                       Text(_durationToTxt(songs.data![index].duration ?? 0)),
@@ -95,8 +129,8 @@ class SongListView extends StatelessWidget {
                     type: ArtworkType.AUDIO,
                   ),
                   onTap: () async {
-                    await playAndSetCurrentSong(index);
                     toggleView();
+                    await playAndSetCurrentSong(index);
                   },
                 ),
               );

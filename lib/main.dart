@@ -36,14 +36,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // The theme color of the application
-  Color themeColor = const Color.fromARGB(26, 71, 71, 71);
+  Color themeColor = Color.fromARGB(26, 156, 156, 156);
+  bool isBluetoothGranted = false;
+
   // List of all songs
   List<SongModel> songsList = [];
   int currentSongIndex = -1;
   bool inPlayerView = false;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  final String wearableName = "eSense-0176";
   late ESenseController? wearable;
+  bool isWearableConnected = false;
 
   @override
   void initState() {
@@ -62,18 +67,22 @@ class _MyHomePageState extends State<MyHomePage> {
     _audioPlayer.setLoopMode(LoopMode.all);
 
     wearable = ESenseController(
-        deviceName: "eSence-012",
+        deviceName: wearableName,
+        onConnectionChange: onConnectionChange,
         onRightShake: onRightShake,
         onLeftShake: onLeftShake);
-    wearable?.connect();
-    wearable?.startListening();
+
+    //wearable?.connect();
+    //wearable?.startListening();
   }
 
   // Dispose of audio player
   @override
   void dispose() {
     _audioPlayer.dispose();
+    wearable?.stopListening();
     wearable?.disconnect();
+    isWearableConnected = false;
     super.dispose();
   }
 
@@ -82,17 +91,22 @@ class _MyHomePageState extends State<MyHomePage> {
     if (inPlayerView) {
       return PlayerView(
         themeColor: themeColor,
+        isWearableConnected: isWearableConnected,
         toggleView: toggleView,
         currentSong: songsList[currentSongIndex],
         audioPlayer: _audioPlayer,
+        connectToWearable: connectToWearable,
       );
     } else {
       return SongListView(
-          themeColor: themeColor,
-          playAndSetCurrentSong: playAndSetCurrentSong,
-          songsList: songsList,
-          displayPlayingSong: _getSongToDisplay(),
-          toggleView: toggleView);
+        themeColor: themeColor,
+        isWearableConnected: isWearableConnected,
+        playAndSetCurrentSong: playAndSetCurrentSong,
+        songsList: songsList,
+        displayPlayingSong: _getSongToDisplay(),
+        toggleView: toggleView,
+        connectToWearable: connectToWearable,
+      );
     }
   }
 
@@ -110,7 +124,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void playAndSetCurrentSong(int index) async {
+  void connectToWearable() {
+    wearable?.startListening();
+    wearable?.connect();
+  }
+
+  Future playAndSetCurrentSong(int index) async {
     List<AudioSource> sources = [];
 
     for (var song in songsList) {
@@ -130,6 +149,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // Setup wearable actions
+
+  void onConnectionChange() {
+    setState(() {
+      isWearableConnected = wearable?.connected ?? false;
+    });
+  }
 
   void onRightShake() async {
     if (_audioPlayer.hasNext) {
@@ -162,6 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await Permission.bluetooth.request();
     await Permission.locationWhenInUse.request();
     await Permission.bluetoothScan.request();
+    await Permission.bluetoothConnect.request();
 
     setState(() {});
   }

@@ -10,14 +10,18 @@ class PlayerView extends StatefulWidget {
   const PlayerView(
       {super.key,
       required this.themeColor,
+      required this.isWearableConnected,
       required this.toggleView,
       required this.currentSong,
-      required this.audioPlayer});
+      required this.audioPlayer,
+      required this.connectToWearable});
 
   final Color themeColor;
+  final bool isWearableConnected;
   final Function toggleView;
   final SongModel currentSong;
   final AudioPlayer audioPlayer;
+  final Function connectToWearable;
 
   // Get the dutation stream
   Stream<DurationState> get _durationStateStream =>
@@ -58,11 +62,12 @@ class _PlayerViewState extends State<PlayerView> {
               decoration: BoxDecoration(color: widget.themeColor),
               child: Column(
                 children: <Widget>[
-                  //Exit Button
+                  // Top Bar
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,
                     children: [
+                      //Exit Button
                       Flexible(
                         child: InkWell(
                           onTap: () {
@@ -77,13 +82,37 @@ class _PlayerViewState extends State<PlayerView> {
                           ),
                         ),
                       ),
+                      // Wearable Connection Status
+                      Flexible(
+                        flex: 5,
+                        child: widget.isWearableConnected
+                            ? const Icon(
+                                Icons.bluetooth_connected,
+                                color: Colors.green,
+                              )
+                            : InkWell(
+                                onTap: (() {
+                                  widget.connectToWearable();
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(const SnackBar(
+                                          content: Text(
+                                    "Connecting...",
+                                    textAlign: TextAlign.center,
+                                  )));
+                                }),
+                                child: const Icon(
+                                  Icons.bluetooth_disabled,
+                                  color: Colors.red,
+                                ),
+                              ),
+                      ),
                     ],
                   ),
 
                   // Artwork
                   Container(
-                    width: 300,
-                    height: 300,
+                    width: 280,
+                    height: 280,
                     margin: const EdgeInsets.only(top: 30, bottom: 30),
                     child: QueryArtworkWidget(
                       id: widget.currentSong.id,
@@ -103,6 +132,8 @@ class _PlayerViewState extends State<PlayerView> {
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
