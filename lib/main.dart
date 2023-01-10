@@ -23,6 +23,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -36,7 +37,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // The theme color of the application
-  Color themeColor = Color.fromARGB(26, 156, 156, 156);
+  Color themeColor = const Color.fromARGB(26, 156, 156, 156);
   bool isBluetoothGranted = false;
 
   // List of all songs
@@ -71,9 +72,6 @@ class _MyHomePageState extends State<MyHomePage> {
         onConnectionChange: onConnectionChange,
         onRightShake: onRightShake,
         onLeftShake: onLeftShake);
-
-    //wearable?.connect();
-    //wearable?.startListening();
   }
 
   // Dispose of audio player

@@ -48,33 +48,32 @@ class SongListView extends StatelessWidget {
     return Scaffold(
       backgroundColor: themeColor,
       appBar: AppBar(
+        flexibleSpace: GestureDetector(onTap: () {
+          connectToWearable();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+            "Connecting...",
+            textAlign: TextAlign.center,
+          )));
+        }),
         backgroundColor: themeColor,
         title: Center(
-            child: Wrap(alignment: WrapAlignment.spaceBetween, children: [
-          Text(_songListViewTitle),
-          Container(
-            margin: const EdgeInsets.only(left: 10),
-            child: isWearableConnected
-                ? const Icon(
-                    Icons.bluetooth_connected,
-                    color: Colors.green,
-                  )
-                : InkWell(
-                    child: const Icon(
+          child: Wrap(alignment: WrapAlignment.spaceBetween, children: [
+            Text(_songListViewTitle),
+            Container(
+              margin: const EdgeInsets.only(left: 10),
+              child: isWearableConnected
+                  ? const Icon(
+                      Icons.bluetooth_connected,
+                      color: Colors.green,
+                    )
+                  : const Icon(
                       Icons.bluetooth_disabled,
                       color: Colors.red,
                     ),
-                    onTap: () {
-                      connectToWearable();
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text(
-                        "Connecting...",
-                        textAlign: TextAlign.center,
-                      )));
-                    },
-                  ),
-          ),
-        ])),
+            ),
+          ]),
+        ),
       ),
       bottomNavigationBar: PlayerBottomBar(
         displayPlayingSong: displayPlayingSong,

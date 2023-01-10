@@ -71,7 +71,7 @@ class ESenseController {
 
       // Detect shake right or left
       if (delta.abs() > shakeTreshold) {
-        DateTime now = DateTime.now();
+        DateTime now = event.timestamp;
         if (now.difference(lastShake).inMilliseconds <
             timeBetweenShakesInMilliseconds) return;
         lastShake = now;

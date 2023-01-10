@@ -111,9 +111,9 @@ class _PlayerViewState extends State<PlayerView> {
 
                   // Artwork
                   Container(
-                    width: 280,
-                    height: 280,
-                    margin: const EdgeInsets.only(top: 30, bottom: 30),
+                    width: 350,
+                    height: 350,
+                    margin: const EdgeInsets.only(top: 50, bottom: 50),
                     child: QueryArtworkWidget(
                       id: widget.currentSong.id,
                       type: ArtworkType.AUDIO,
@@ -123,7 +123,7 @@ class _PlayerViewState extends State<PlayerView> {
                   // Song Title
                   Container(
                     width: 300,
-                    margin: const EdgeInsets.only(top: 30, bottom: 30),
+                    margin: const EdgeInsets.only(top: 50, bottom: 50),
                     child: Center(
                       child: Text(
                         widget.currentSong.title,
